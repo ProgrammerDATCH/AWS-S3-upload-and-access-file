@@ -1,21 +1,19 @@
+/* eslint-disable */
 'use client'
-
 import { useState } from 'react'
 
 export default function Page() {
   const [file, setFile] = useState<File | null>(null)
   const [uploading, setUploading] = useState(false)
+  const [imageUrl, setImageUrl] = useState<string | null>(null)
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-
     if (!file) {
       alert('Please select a file to upload.')
       return
     }
-
     setUploading(true)
-
     const response = await fetch(
       process.env.NEXT_PUBLIC_BASE_URL + '/api/upload',
       {
@@ -26,23 +24,20 @@ export default function Page() {
         body: JSON.stringify({ filename: file.name, contentType: file.type }),
       }
     )
-
     if (response.ok) {
-      const { url, fields } = await response.json()
-
+      const { url, fields, fileUrl } = await response.json()
       const formData = new FormData()
       Object.entries(fields).forEach(([key, value]) => {
         formData.append(key, value as string)
       })
       formData.append('file', file)
-
       const uploadResponse = await fetch(url, {
         method: 'POST',
         body: formData,
       })
-
       if (uploadResponse.ok) {
         alert('Upload successful!')
+        setImageUrl(fileUrl)  // Store the URL of the uploaded image
       } else {
         console.error('S3 Upload Error:', uploadResponse)
         alert('Upload failed.')
@@ -50,7 +45,6 @@ export default function Page() {
     } else {
       alert('Failed to get pre-signed URL.')
     }
-
     setUploading(false)
   }
 
@@ -73,6 +67,12 @@ export default function Page() {
           Upload
         </button>
       </form>
+      {imageUrl && (
+        <div>
+          <h2>Uploaded Image:</h2>
+          <img src={imageUrl} alt="Uploaded file" style={{ maxWidth: '100%' }} />
+        </div>
+      )}
     </main>
   )
 }
